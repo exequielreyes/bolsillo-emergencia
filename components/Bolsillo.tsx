@@ -84,6 +84,7 @@ export default function Bolsillo() {
   const [editandoContactos, setEditandoContactos] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoTel, setNuevoTel] = useState("");
+  const [mostrarSelectorContacto, setMostrarSelectorContacto] = useState(false);
   const [autoRead, setAutoRead] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [cargandoGps, setCargandoGps] = useState(false);
@@ -419,6 +420,107 @@ export default function Bolsillo() {
           ? `Enviar por WhatsApp a ${guardadosValidos[0].nombre || "contacto"}`
           : "Enviar por WhatsApp"}
       </a>
+
+      {/* Nueva opción para enviar a la persona que elija de sus contactos */}
+      <button
+        type="button"
+        className="big secondary"
+        onClick={() => setMostrarSelectorContacto(!mostrarSelectorContacto)}
+      >
+        {mostrarSelectorContacto
+          ? "Ocultar otros contactos"
+          : "Enviar a otro contacto de la app…"}
+      </button>
+
+      {mostrarSelectorContacto && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            padding: "12px",
+            border: "2px solid var(--signal)",
+            borderRadius: "14px",
+            background: "rgba(255, 214, 10, 0.05)",
+          }}
+        >
+          <span style={{ fontSize: "16px", fontWeight: "bold", color: "var(--signal)" }}>
+            Elegí a qué contacto enviar tu ubicación:
+          </span>
+
+          {guardadosValidos.length > 0 ? (
+            guardadosValidos.map((c, idx) => {
+              const telLimpio = soloDigitos(c.tel);
+              const waContacto = `https://wa.me/${telLimpio}?text=${encodeURIComponent(mensajeLoc)}`;
+              const smsContacto = `sms:${telLimpio}${sepSms}body=${encodeURIComponent(mensajeLoc)}`;
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    padding: "12px",
+                    border: "2px solid var(--line)",
+                    borderRadius: "12px",
+                    background: "var(--surface)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "18px", fontWeight: "bold" }}>
+                      {c.nombre || `Contacto ${idx + 1}`}
+                    </span>
+                    <span style={{ fontSize: "14px", color: "var(--muted)" }}>{c.tel}</span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "8px" }}>
+                    <a
+                      href={waContacto}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="big whatsapp"
+                      style={{ minHeight: "54px", fontSize: "17px" }}
+                      onClick={() => {
+                        if (!gpsData) obtenerUbicacion();
+                      }}
+                    >
+                      WhatsApp
+                    </a>
+                    <a
+                      href={smsContacto}
+                      className="big secondary"
+                      style={{ minHeight: "54px", fontSize: "17px" }}
+                      onClick={() => {
+                        if (!gpsData) obtenerUbicacion();
+                      }}
+                    >
+                      SMS
+                    </a>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ textAlign: "center", padding: "10px" }}>
+              <p style={{ margin: "0 0 10px 0", fontSize: "16px" }}>
+                No tenés contactos guardados todavía.
+              </p>
+              <button
+                type="button"
+                className="big secondary"
+                onClick={() => {
+                  setView("contacts");
+                  setEditandoContactos(true);
+                }}
+              >
+                Cargar contactos de confianza
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <a
         href={urlSms}
         className="big secondary"
