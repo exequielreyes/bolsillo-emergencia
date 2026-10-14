@@ -82,6 +82,8 @@ export default function Bolsillo() {
   const [history, setHistory] = useState<string[]>(["start"]);
   const [contactos, setContactos] = useState<Contacto[]>(CONTACTOS_DEFAULT);
   const [editandoContactos, setEditandoContactos] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoTel, setNuevoTel] = useState("");
   const [autoRead, setAutoRead] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [cargandoGps, setCargandoGps] = useState(false);
@@ -282,6 +284,39 @@ export default function Bolsillo() {
     try {
       localStorage.setItem("contactos", JSON.stringify(nuevos));
     } catch {}
+  };
+
+  const agregarNuevoContacto = () => {
+    if (!nuevoTel.trim() && !nuevoNombre.trim()) {
+      say("Completá el nombre o teléfono");
+      return;
+    }
+    const limpios = contactos.filter((c) => c.nombre.trim() !== "" || c.tel.trim() !== "");
+    const nuevos = [...limpios, { nombre: nuevoNombre.trim(), tel: nuevoTel.trim() }];
+    guardarContactos(nuevos);
+    setNuevoNombre("");
+    setNuevoTel("");
+    say("Contacto agregado y guardado");
+  };
+
+  const eliminarContacto = (index: number) => {
+    const nuevos = contactos.filter((_, i) => i !== index);
+    guardarContactos(nuevos.length ? nuevos : [{ nombre: "", tel: "" }]);
+    say("Contacto eliminado");
+  };
+
+  const finalizarEdicion = () => {
+    let actualizados = [...contactos];
+    if (nuevoTel.trim() || nuevoNombre.trim()) {
+      actualizados.push({ nombre: nuevoNombre.trim(), tel: nuevoTel.trim() });
+      setNuevoNombre("");
+      setNuevoTel("");
+    }
+    const limpios = actualizados.filter((c) => c.nombre.trim() !== "" || c.tel.trim() !== "");
+    const finales = limpios.length > 0 ? limpios : [{ nombre: "", tel: "" }];
+    guardarContactos(finales);
+    setEditandoContactos(false);
+    say("Contactos guardados");
   };
 
   const guardadosValidos = contactos.filter((c) => soloDigitos(c.tel).length >= 6);
@@ -527,7 +562,7 @@ export default function Bolsillo() {
                 type="button"
                 onClick={() => setEditandoContactos(!editandoContactos)}
               >
-                {editandoContactos ? "Ocultar edición" : "Modificar mis contactos"}
+                {editandoContactos ? "Ocultar modificación" : "Modificar mis contactos"}
               </button>
             </div>
 
@@ -537,51 +572,151 @@ export default function Bolsillo() {
                 style={{ marginTop: "16px", borderColor: "var(--signal)" }}
               >
                 <h2 style={{ margin: 0, fontSize: "18px" }}>Configurar contactos de confianza</h2>
-                {contactos.map((c, i) => (
-                  <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <input
-                      aria-label={`Nombre de contacto ${i + 1}`}
-                      placeholder={`Nombre del contacto ${i + 1}`}
-                      value={c.nombre}
-                      onChange={(e) =>
-                        guardarContactos(
-                          contactos.map((item, idx) =>
-                            idx === i ? { ...item, nombre: e.target.value } : item
-                          )
-                        )
-                      }
-                      style={{
-                        padding: "12px",
-                        borderRadius: "10px",
-                        border: "2px solid var(--fg)",
-                        background: "var(--surface)",
-                        color: "var(--fg)",
-                        fontSize: "18px",
-                      }}
-                    />
-                    <input
-                      aria-label={`Teléfono de contacto ${i + 1}`}
-                      placeholder="Teléfono (ej: 5491112345678)"
-                      inputMode="tel"
-                      value={c.tel}
-                      onChange={(e) =>
-                        guardarContactos(
-                          contactos.map((item, idx) =>
-                            idx === i ? { ...item, tel: e.target.value } : item
-                          )
-                        )
-                      }
-                      style={{
-                        padding: "12px",
-                        borderRadius: "10px",
-                        border: "2px solid var(--fg)",
-                        background: "var(--surface)",
-                        color: "var(--fg)",
-                        fontSize: "18px",
-                      }}
-                    />
+
+                {/* Formulario para agregar nuevo contacto */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    padding: "14px",
+                    border: "2px dashed var(--signal)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 214, 10, 0.05)",
+                  }}
+                >
+                  <span style={{ fontSize: "16px", fontWeight: "bold", color: "var(--signal)" }}>
+                    + Agregar nuevo contacto
+                  </span>
+                  <input
+                    aria-label="Nombre del nuevo contacto"
+                    placeholder="Nombre (ej. Mamá, Hermano, Juan)"
+                    value={nuevoNombre}
+                    onChange={(e) => setNuevoNombre(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "2px solid var(--fg)",
+                      background: "var(--surface)",
+                      color: "var(--fg)",
+                      fontSize: "18px",
+                    }}
+                  />
+                  <input
+                    aria-label="Teléfono del nuevo contacto"
+                    placeholder="Teléfono con código de área (ej: 549...)"
+                    inputMode="tel"
+                    value={nuevoTel}
+                    onChange={(e) => setNuevoTel(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "2px solid var(--fg)",
+                      background: "var(--surface)",
+                      color: "var(--fg)",
+                      fontSize: "18px",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="big secondary"
+                    onClick={agregarNuevoContacto}
+                    style={{ minHeight: "52px", fontSize: "18px" }}
+                  >
+                    + Guardar este contacto
+                  </button>
+                </div>
+
+                {/* Contactos actuales */}
+                {contactos.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "4px" }}>
+                    <span style={{ fontSize: "15px", fontWeight: "bold", color: "var(--muted)" }}>
+                      Contactos guardados actualmente:
+                    </span>
+                    {contactos.map((c, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "8px",
+                          padding: "12px",
+                          border: "2px solid var(--line)",
+                          borderRadius: "12px",
+                          background: "var(--surface)",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "15px", fontWeight: "bold", color: "var(--muted)" }}>
+                            Contacto {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => eliminarContacto(i)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "var(--danger)",
+                              fontSize: "14px",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                        <input
+                          aria-label={`Nombre de contacto ${i + 1}`}
+                          placeholder="Nombre"
+                          value={c.nombre}
+                          onChange={(e) =>
+                            guardarContactos(
+                              contactos.map((item, idx) =>
+                                idx === i ? { ...item, nombre: e.target.value } : item
+                              )
+                            )
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "12px",
+                            borderRadius: "10px",
+                            border: "2px solid var(--fg)",
+                            background: "var(--surface)",
+                            color: "var(--fg)",
+                            fontSize: "18px",
+                          }}
+                        />
+                        <input
+                          aria-label={`Teléfono de contacto ${i + 1}`}
+                          placeholder="Teléfono (ej: 5491112345678)"
+                          inputMode="tel"
+                          value={c.tel}
+                          onChange={(e) =>
+                            guardarContactos(
+                              contactos.map((item, idx) =>
+                                idx === i ? { ...item, tel: e.target.value } : item
+                              )
+                            )
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "12px",
+                            borderRadius: "10px",
+                            border: "2px solid var(--fg)",
+                            background: "var(--surface)",
+                            color: "var(--fg)",
+                            fontSize: "18px",
+                          }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+
+
+
                 <p className="sample">
                   Se guardan únicamente en la memoria de este teléfono. Para WhatsApp utilizá el
                   código de país y área (ej. 549...).
